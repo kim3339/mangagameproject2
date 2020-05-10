@@ -4,8 +4,8 @@ public delegate void OnHealthChangedHandler(Character self, Character source, fl
 public delegate void OnDeadHandler(Character self, string cause, bool destroyObject);
 public delegate void OnKnockbackedHander(Character self, Character source, Vector2 Power);
 public delegate void OnBuffAddedHandler(Character self, Character source, Buff buff, ref bool addBuff);
-public delegate void OnPlayerActionHandler(PlayerBehavior self, PlayerBehavior.INPUT_FLAG iNPUT_FLAG);
-public delegate void OnShootHandler(Character self, ref ProjectileInfo info);
+public delegate void OnPlayerActionHandler(PlayerBehaviour self, PlayerBehaviour.INPUT_FLAG iNPUT_FLAG);
+public delegate void OnShootHandler(Character self, Projectile proj);
 
 [System.Serializable]
 public struct CharactorStatus
@@ -50,7 +50,8 @@ public struct ProjectileInfo
 
     public float duration;
     public float damage;
+    public float speedMultiplier;
     public bool ignorePlatform;
     public int fierceCount;
-    public int targetLayerMask;
+    public LayerMask targetLayerMask;
 }

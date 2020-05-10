@@ -44,6 +44,8 @@ public class Character : MonoBehaviour
     public bool IsGrounded => controller.Collisions.below;
     public int CanMove { get => canFixedUpdate; set => canFixedUpdate = Mathf.Max(0, value); }
     public int CanAct { get => canUpdate; set => canUpdate = Mathf.Max(0, value); }
+    public int Invincibility { get => invincibility; set => invincibility = Mathf.Max(0, value); }
+
     public string Name { get => name; }
 
     [HideInInspector]
@@ -52,10 +54,11 @@ public class Character : MonoBehaviour
     // 컴포넌트
     
     [SerializeField]
-    private Behavior behavior;
+    private Behaviour behaviour;
     [HideInInspector]
     public new Transform transform;
-    CharacterController2D controller;
+    [HideInInspector]
+    public CharacterController2D controller;
     [HideInInspector]
     public Animator animator;
     public BoxCollider2D collider => controller.collider;
@@ -68,7 +71,6 @@ public class Character : MonoBehaviour
     int canUpdate = 0;
     int canFixedUpdate = 0;
 
-
     public const float GRAVITY = -20;
     const float AIRDAMP = 0.01f;
     const float GROUNDDAMP = 0.03f;
@@ -79,7 +81,7 @@ public class Character : MonoBehaviour
     
     bool hasGravity = true;
     [SerializeField] new private string name = "이름 없음";
-    bool invincibility = false;
+    int invincibility = 0;
 
     // Use this for initialization
     void Awake()
@@ -97,14 +99,14 @@ public class Character : MonoBehaviour
         buffs.Clear();
         StartCoroutine(HpRegenerate());
 
-        if (behavior != null)
+        if (behaviour != null)
         {
-            behavior.Connect(this);
-            StartCoroutine(BehaviorManager());
+            behaviour.Connect(this);
+            StartCoroutine(BehaviourManager());
         }
     }
 
-    IEnumerator BehaviorManager()
+    IEnumerator BehaviourManager()
     {
         var waitForDisable = new WaitWhile(() => CanAct == 0 || IsInteracting);
         var waitForEnable = new WaitUntil(() => CanAct == 0 || IsInteracting);
@@ -112,9 +114,9 @@ public class Character : MonoBehaviour
         while (true)
         {
             yield return waitForDisable;
-            behavior.enabled = false;
+            behaviour.enabled = false;
             yield return waitForEnable;
-            behavior.enabled = true;
+            behaviour.enabled = true;
         }
     }
 
@@ -143,6 +145,8 @@ public class Character : MonoBehaviour
         controller.Move((velocity + moveVelocity) * Time.fixedDeltaTime);
 
         animator.SetBool("IsGrounded", IsGrounded);
+
+        moveVelocity = Vector3.zero;
     }
 
     private IEnumerator HpRegenerate()
@@ -166,7 +170,7 @@ public class Character : MonoBehaviour
 	/// </summary>
     public float Damage(Character source, float amount, bool getInv = true, bool ignoreInv = false)
     {
-        if (invincibility && !ignoreInv) return 0;
+        if (Invincibility > 0 && !ignoreInv) return 0;
         float value = amount;
 
         if (OnDamagedMultiplier != null)
@@ -193,9 +197,9 @@ public class Character : MonoBehaviour
 
         health = Mathf.Max(0, Health - value);
         if (health == 0) Dead(source?.Name);
-        else if(getInv && !invincibility)
+        else if(getInv && Invincibility == 0)
         {
-            invincibility = true;
+            Invincibility++;
             Invoke("RecoverInv", 0.2f);
         }
         return value;
@@ -205,7 +209,7 @@ public class Character : MonoBehaviour
 	/// </summary>
     public float Damage(string cause, float amount, bool getInv = false, bool ignoreInv = false)
     {
-        if (invincibility && !ignoreInv) return 0;
+        if (Invincibility > 0 && !ignoreInv) return 0;
         float value = amount;
 
         if (OnDamagedMultiplier != null)
@@ -232,15 +236,15 @@ public class Character : MonoBehaviour
 
         health = Mathf.Max(0, Health - value);
         if (health == 0) Dead(cause);
-        else if (getInv && !invincibility)
+        else if (getInv && Invincibility == 0)
         {
-            invincibility = true;
+            Invincibility++;
             Invoke("RecoverInv", 0.2f);
         }
         return value;
     }
 
-    void RecoverInv() => invincibility = false;
+    void RecoverInv() => Invincibility--;
     /// <summary>
 	/// 회복을 받습니다.
 	/// </summary>
@@ -319,20 +323,34 @@ public class Character : MonoBehaviour
 
         moveVelocity = Vector2.right * move * Status.moveSpeed;
         if (move != 0)
-            transform.localScale = new Vector3(move, transform.localScale.y, transform.localScale.z);
+            transform.localScale = new Vector3(Mathf.Sign(move) * Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
         animator.SetBool("Move", move != 0);
 
     }
 
     public void GoDownPlatform() => controller.TriggerGoDown();
 
-    public Projectile CreateProjectile(GameObject prefab, ProjectileInfo info, Vector2 velocity)
+    public Projectile CreateProjectile(GameObject prefab, Vector3 pos, Vector2 velocity, int targetLayerMask)
     {
         if (prefab.GetComponent<Projectile>() == null) return null;
-        OnShoot?.Invoke(this, ref info);
-
+        
         var ins = Instantiate(prefab).GetComponent<Projectile>();
-        ins.Initialize(info, (p) => p.controller.Move(velocity * Time.deltaTime));
+        ins.transform.position = pos;
+        ins.OnUpdate += (p) => p.Move(velocity * Time.deltaTime);
+        ins.info.targetLayerMask = targetLayerMask;
+        ins.info.source = this;
+
+        OnShoot?.Invoke(this, ins);
+        return ins;
+    }
+    public Projectile CreateProjectile(GameObject prefab, Vector3 pos, int targetLayerMask)
+    {
+        if (prefab.GetComponent<Projectile>() == null) return null;
+        var ins = Instantiate(prefab).GetComponent<Projectile>();
+        ins.transform.position = pos;
+        ins.info.source = this;
+        ins.info.targetLayerMask = targetLayerMask;
+        OnShoot?.Invoke(this, ins);
         return ins;
     }
 

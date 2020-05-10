@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 9119764570348071899}
   - component: {fileID: 9119764570348071892}
   - component: {fileID: 9119764570348071894}
-  - component: {fileID: 9119764570348071898}
   - component: {fileID: 9119764570348071895}
   - component: {fileID: 9119764570348071897}
+  - component: {fileID: 4913577990130590936}
   m_Layer: 10
   m_Name: Player
   m_TagString: Untagged
@@ -81,7 +81,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -102,7 +102,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 3258201195675435365, guid: b4f02a0701b59b7419cd85c910f36979,
+  m_Sprite: {fileID: 1220027675351358585, guid: deb744032582afe44b05b1e09ef5e760,
     type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -155,19 +155,6 @@ MonoBehaviour:
   verticalRaySpacing: 0
   collider: {fileID: 9119764570348071893}
   debug: 1
---- !u!114 &9119764570348071898
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9119764570348071889}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4b44a99f7bdd704c9609a5b4b738402, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  InitJumpHeight: 3
 --- !u!114 &9119764570348071895
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -181,8 +168,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   velocity: {x: 0, y: 0, z: 0}
-  behavior: {fileID: 9119764570348071898}
+  behavior: {fileID: 4913577990130590936}
   transform: {fileID: 0}
+  controller: {fileID: 0}
   animator: {fileID: 0}
   initStatus:
     maxHealth: 100
@@ -190,7 +178,7 @@ MonoBehaviour:
     strength: 3
     recovery: 3
     knockback: 1
-  name: "\uC774\uB984 \uC5C6\uC74C"
+  name: Player
 --- !u!114 &9119764570348071897
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,3 +193,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   col: {fileID: 9119764570348071893}
   color: {r: 0, g: 1, b: 0.43849897, a: 0.2}
+--- !u!114 &4913577990130590936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9119764570348071889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb577c73d7415554ba003eacea884e58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  InitJumpHeight: 3
+  skill1Proj: {fileID: 1730238007306284302, guid: a0f44161f1403ed4d8c1e425d260eeb5,
+    type: 3}
