@@ -26,6 +26,7 @@ public class InjectionPlayerBehaviour : PlayerBehaviour
         var wait = new WaitForSeconds(0.1f);
         for(int i = 0; i < 3; i++)
         {
+            if(IsDodging) break;
             var ins = self.CreateProjectile(skill1Proj, transform.position + face * new Vector3(Random.Range(0.9f,1.2f),Random.Range(-0.2f,0.2f), 0), 1 << 11);
             ins.OnUpdate += (Projectile p) => p.Move((8 * Time.deltaTime +  3 * p.LifeTime * Time.deltaTime) * Vector3.right * face );
             float angle = Mathf.Atan2(0, self.controller.Collisions.faceDir) * Mathf.Rad2Deg;

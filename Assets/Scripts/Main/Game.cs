@@ -1,19 +1,29 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 using System;
+using System.IO;
+using JetBrains;
 
-public class World : MonoBehaviour
+public class Game : MonoBehaviour
 {
-    public static World instance;
-
+    public static Game instance;
+    
+    [SerializeField]
+    TextAsset InitLanguage;
+    
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
         if (instance == null) instance = this;
         else Destroy(gameObject);
+
+        TextLocalizer.LoadResource();
+        
     }
 
-    public Projectile CreateProjectile(GameObject prefab, Vector3 pos, int targetLayerMask)
+    
+
+    public static Projectile CreateProjectile(GameObject prefab, Vector3 pos, int targetLayerMask)
     {
         if (prefab.GetComponent<Projectile>() == null) return null;
         
@@ -23,7 +33,7 @@ public class World : MonoBehaviour
         return ins;
     }
 
-    public void Explode()
+    public static void Explode()
     {
 
     }

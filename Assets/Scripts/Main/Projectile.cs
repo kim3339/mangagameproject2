@@ -12,13 +12,15 @@ public class Projectile : MonoBehaviour
 
     float lifetime = 0;
     Vector2 move;
-    public ProjectileInfo info;
+    public ProjectileInfo info = new ProjectileInfo(null,null,5,5,1,false,false,false,0,0);
     CircleCollider2D collider;
     List<Character> prevhit = new List<Character>();
     [SerializeField]
     GameObject onCreatePrefab;
     [SerializeField]
     GameObject onDeathPrefab;
+    [SerializeField]
+    GameObject onHitPrefab;
 
     
     private void Awake() 
@@ -33,6 +35,8 @@ public class Projectile : MonoBehaviour
             {
                 var t = onCreatePrefab.transform;
                 var ins = Instantiate(onCreatePrefab,t.position + transform.position,t.rotation * transform.rotation);
+                ins.transform.RotateAround(transform.position,Vector3.forward,transform.rotation.eulerAngles.z);
+                ins.transform.rotation = Quaternion.Euler(0,0,transform.rotation.eulerAngles.z);
                 Destroy(ins,ins.GetComponent<ParticleSystem>().main.duration);
             }
         }
@@ -55,7 +59,7 @@ public class Projectile : MonoBehaviour
         var hits = Physics2D.CircleCastAll(bounds.center,
                                            collider.radius,
                                            move.normalized,
-                                           move.magnitude,
+                                           move.magnitude * info.speedMultiplier,
                                            info.targetLayerMask | (1 << 8));
         var currentHit = new List<Character>();
         for(int i = 0; i < hits.Length; i++)
@@ -74,11 +78,12 @@ public class Projectile : MonoBehaviour
                 var ins = hits[i].collider.GetComponent<Character>();
                 if(ins == null) continue;
                 if(prevhit.Contains(ins)) continue;
+                else if(!info.allowMultipleHit) prevhit.Add(ins);
+                transform.position = hits[i].centroid;
                 Hit(ins);
                 currentHit.Add(ins);
                 if(info.fierceCount-- <= 0)
                 {
-                    transform.position = hits[i].centroid;
                     Destroy();
                     return;
                 }
@@ -86,9 +91,11 @@ public class Projectile : MonoBehaviour
         }
         transform.position += (Vector3)move;
         
-        prevhit.Clear();
-        prevhit.AddRange(currentHit);
-
+        if(info.allowMultipleHit)
+        {
+            prevhit.Clear();
+            prevhit.AddRange(currentHit);
+        }
         float angle = Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         move = Vector2.zero;
@@ -102,7 +109,18 @@ public class Projectile : MonoBehaviour
 
     protected virtual void Hit(Character target)
     {
-        target.Damage(info.source, info.damage);
+        target.Damage(info.source, info.damage, info.ignoreInv);
+        if(onHitPrefab != null)
+        {
+            if(onHitPrefab.GetComponent<ParticleSystem>()!= null)
+            {
+                var t = onHitPrefab.transform;
+                var ins = Instantiate(onHitPrefab,t.position + transform.position,t.rotation * transform.rotation);
+                ins.transform.RotateAround(transform.position,Vector3.forward,transform.rotation.eulerAngles.z);
+                ins.transform.rotation = Quaternion.Euler(0,0,transform.rotation.eulerAngles.z);
+                Destroy(ins,ins.GetComponent<ParticleSystem>().main.duration);
+            }
+        }
     }
     public virtual void Destroy()
     {
@@ -112,6 +130,8 @@ public class Projectile : MonoBehaviour
             {
                 var t = onDeathPrefab.transform;
                 var ins = Instantiate(onDeathPrefab,t.position + transform.position,t.rotation * transform.rotation);
+                ins.transform.RotateAround(transform.position,Vector3.forward,transform.rotation.eulerAngles.z);
+                ins.transform.rotation = Quaternion.Euler(0,0,transform.rotation.eulerAngles.z);
                 Destroy(ins,ins.GetComponent<ParticleSystem>().main.duration);
             }
         }

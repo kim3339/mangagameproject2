@@ -63,6 +63,8 @@ public class Character : MonoBehaviour
     public Animator animator;
     public BoxCollider2D collider => controller.collider;
 
+    SpriteRenderer renderer;
+
     //내부 파라미터
     [SerializeField]
     CharactorStatus initStatus = new CharactorStatus(100, 3, 3, 3, 1);
@@ -83,11 +85,14 @@ public class Character : MonoBehaviour
     [SerializeField] new private string name = "이름 없음";
     int invincibility = 0;
 
+    float hitEffectAlpha = 0;
+
     // Use this for initialization
     void Awake()
     {
         controller = GetComponent<CharacterController2D>();
         animator = GetComponent<Animator>();
+        renderer = GetComponent<SpriteRenderer>();
         transform = gameObject.transform;
         velocity = Vector3.zero;
 
@@ -120,7 +125,19 @@ public class Character : MonoBehaviour
         }
     }
 
-    
+    void Update()
+    {
+        if(hitEffectAlpha > 0)
+        {
+            renderer.color = new Color(1,1 - hitEffectAlpha, 1 - hitEffectAlpha);
+            hitEffectAlpha -= Time.deltaTime * 3;
+        }
+        else
+        {
+            renderer.color = Color.white;
+            hitEffectAlpha = 0;
+        }
+    }
 
     void FixedUpdate()
     {
@@ -168,7 +185,7 @@ public class Character : MonoBehaviour
     /// <summary>
 	/// 데미지를 받습니다.
 	/// </summary>
-    public float Damage(Character source, float amount, bool getInv = true, bool ignoreInv = false)
+    public float Damage(Character source, float amount, bool ignoreInv = false, bool hitEffect = true)
     {
         if (Invincibility > 0 && !ignoreInv) return 0;
         float value = amount;
@@ -197,54 +214,12 @@ public class Character : MonoBehaviour
 
         health = Mathf.Max(0, Health - value);
         if (health == 0) Dead(source?.Name);
-        else if(getInv && Invincibility == 0)
+        else if(hitEffect)
         {
-            Invincibility++;
-            Invoke("RecoverInv", 0.2f);
+            hitEffectAlpha = 0.6f;
         }
         return value;
     }
-    /// <summary>
-	/// 데미지를 받습니다. 엔티티에게서 받지 않는 공격에 쓰입니다.
-	/// </summary>
-    public float Damage(string cause, float amount, bool getInv = false, bool ignoreInv = false)
-    {
-        if (Invincibility > 0 && !ignoreInv) return 0;
-        float value = amount;
-
-        if (OnDamagedMultiplier != null)
-        {
-            var list = OnDamagedMultiplier.GetInvocationList();
-            for (int i = 0; i < list.Length; i++)
-            {
-                value *= (float)list[i].DynamicInvoke();
-            }
-        }
-        if (OnDamagedAdder != null)
-        {
-            var list = OnDamagedAdder.GetInvocationList();
-            for (int i = 0; i < list.Length; i++)
-            {
-                value += (float)list[i].DynamicInvoke();
-            }
-        }
-
-        value = Mathf.Max(0, value);
-        OnDamaged?.Invoke(this, null, value);
-
-        if (value < 0) return 0;
-
-        health = Mathf.Max(0, Health - value);
-        if (health == 0) Dead(cause);
-        else if (getInv && Invincibility == 0)
-        {
-            Invincibility++;
-            Invoke("RecoverInv", 0.2f);
-        }
-        return value;
-    }
-
-    void RecoverInv() => Invincibility--;
     /// <summary>
 	/// 회복을 받습니다.
 	/// </summary>
@@ -287,13 +262,14 @@ public class Character : MonoBehaviour
     public void Dead(string cause)
     {
         if (cause == null) cause = "자비없는 세계";
-        Debug.Log(Name + "은(는) " + cause + "에 의해 죽었습니다.");
-
-        // 이벤트
+    
+        
         bool destroyit = true;
-        OnDead?.Invoke(this, cause, destroyit);
+        if(!destroyit) return;
 
-        if(destroyit) Destroy(gameObject);
+        Destroy(gameObject);
+        OnDead?.Invoke(this, cause, ref destroyit);
+        Debug.Log(Name + "은(는) " + cause + "에 의해 죽었습니다.");
     }
     /// <summary>
 	/// 넉백을 받습니다.
@@ -386,7 +362,7 @@ public class Character : MonoBehaviour
     public void AddBuff(Buff buff)
     {
         bool value = true;
-        OnBuffAdded?.Invoke(this, buff.Owner, buff, ref value);
+        OnBuffAdded?.Invoke(this, buff.info.source, buff, ref value);
         if(value)
         {
         buffs.Add(buff);

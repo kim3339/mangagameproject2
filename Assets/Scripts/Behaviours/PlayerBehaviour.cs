@@ -14,6 +14,9 @@ public abstract class PlayerBehaviour : Behaviour
     [SerializeField]
     float InitJumpHeight = 3f;
     float jumpPower;
+    float lastdodgemove;
+    [SerializeField]
+    float dodgemove;
     bool isDodging = false;
     bool canDodge = true;
     bool canUseUlt = true;
@@ -21,9 +24,10 @@ public abstract class PlayerBehaviour : Behaviour
     Character player;
     Vector2 arrowInput;
 
-
     protected Control control;
     protected Animator animator;
+
+    protected TrailRenderer dodgeTrail;
 
     INPUT_FLAG input;
     INPUT_FLAG buffer;
@@ -61,7 +65,14 @@ public abstract class PlayerBehaviour : Behaviour
 
     void Awake()
     {
-        jumpPower = Mathf.Sqrt(-2f * InitJumpHeight * Character.GRAVITY); ;
+        dodgeTrail = GetComponentInChildren<TrailRenderer>();
+        var cam = Camera.main.GetComponent<CameraController>();
+        if(cam != null)
+        {
+            var f = new CameraFollow(transform,Vector2.one);
+            cam.follows.Add(f);
+        }
+        jumpPower = Mathf.Sqrt(-2f * InitJumpHeight * Character.GRAVITY);
         animator = GetComponent<Animator>();
         control = new Control();
         //입력 핸들러 바인딩
@@ -84,19 +95,9 @@ public abstract class PlayerBehaviour : Behaviour
         }
         buffer = INPUT_FLAG.NONE;
 
-        arrowInput = control.Player.Move.ReadValue<Vector2>();
-        // 여기서 입력값이 받아진다.
+        
 
-        //이동
-        float move = 0;
-
-        //구르기 시 자동이동
-        if (IsDodging)
-            move = transform.localScale.x > 0 ? 1 : -1;
-        else if(arrowInput.x != 0)
-            move = arrowInput.x > 0 ? 1 : -1;
-
-        Move(move);
+        
         var _in = input;
         if (((input & INPUT_FLAG.JUMP) != 0) && player.IsGrounded) Jump();
         if ((input & INPUT_FLAG.DODGE) != 0 && CanDodge) Dodge();
@@ -147,6 +148,38 @@ public abstract class PlayerBehaviour : Behaviour
 
     }
     
+    private void FixedUpdate() {
+    arrowInput = control.Player.Move.ReadValue<Vector2>();
+        // 여기서 입력값이 받아진다.
+
+        //이동
+
+        if(IsDodging)
+        {
+            float delta = dodgemove - lastdodgemove;
+            if(arrowInput.x != 0) delta = Mathf.Max(Time.deltaTime * player.Status.moveSpeed * 0.5f,delta);
+            if(player.IsGrounded)
+            {
+                self.controller.Move(new Vector2(delta * Mathf.Sign(self.transform.localScale.x),0));
+            }
+            else
+            {
+                Move(Mathf.Sign(self.transform.localScale.x));
+            }
+            lastdodgemove = dodgemove;
+
+            dodgeTrail.time = 0.2f;
+        }
+        else
+        {
+            dodgemove = 0;
+            lastdodgemove = 0;
+            Move(arrowInput.x);
+            dodgeTrail.time = Mathf.Max(0,dodgeTrail.time - Time.fixedDeltaTime);
+
+        }
+    }
+
     protected virtual void Move(float move) => player.Move(move);
     protected virtual void Jump()
     {
@@ -156,9 +189,14 @@ public abstract class PlayerBehaviour : Behaviour
 
     protected virtual void Dodge()
     {
+        lastdodgemove = 0;
         canDodge = false;
         isDodging = true;
         player.Invincibility++;
+
+        if (control.Player.Move.ReadValue<Vector2>().x != 0)
+            transform.localScale = new Vector3(Mathf.Sign(control.Player.Move.ReadValue<Vector2>().x) * Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+
         animator.SetBool("Dodge",isDodging);
     }
 
@@ -167,12 +205,13 @@ public abstract class PlayerBehaviour : Behaviour
         isDodging = false;
         player.Invincibility--;
         StartCoroutine(DodgeDelay());
+        animator.SetBool("Move",control.Player.Move.ReadValue<Vector2>().x != 0);
         animator.SetBool("Dodge",isDodging);
     }
 
     private IEnumerator DodgeDelay()
     {
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.3f);
         canDodge = true;
     }
     

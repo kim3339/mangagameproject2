@@ -4,30 +4,12 @@ using System;
 
 public class Buff
 {
-    public readonly string name = "이름 없는 버프";
-    public Character Owner => source;
-    float duration;
+    public BuffInfo info;
     float lifetime;
-    Character source;
-    Character target;
     Func<Character, Character, float,bool> condition;
-    public bool isVisible;
-
-    public Buff(string name,
-            float duration = float.PositiveInfinity,
-            Character source = null, 
-            Func<Character, Character,float,bool> condition = null,
-            bool isVisible = false)
-    {
-        this.name = source == null ? "" : (source.Name + "의 ") + name;
-        this.condition = condition;
-        this.duration = duration;
-        this.isVisible = isVisible;
-        lifetime = 0;
-    }
     public void Init(Character target)
     {
-        this.target = target;
+        this.info.target = target;
         Enter();
     }
     public bool DurationCheck() 
@@ -36,9 +18,9 @@ public class Buff
         lifetime += Time.deltaTime;
 
         //조건을 만족하거나 지속시간이 끝나면 종료
-        var _cond = condition == null ? false : condition(source, target, lifetime);
+        var _cond = condition == null ? false : condition(info.target, info.source, lifetime);
 
-        return _cond || lifetime > duration;
+        return _cond || (info.duration >= 0 ? lifetime > info.duration : false);
 
     }
     /// <summary>
